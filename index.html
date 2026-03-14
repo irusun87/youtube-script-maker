@@ -145,7 +145,7 @@
 <div class="main">
 
   <!-- API Key -->
-  <div class="card">
+  <div class="card" id="api-card">
     <div class="card-title"><span class="step">1</span> Anthropic API 키</div>
     <div class="input-row">
       <input type="password" id="api-key" placeholder="sk-ant-api03-..." autocomplete="off">
@@ -221,6 +221,14 @@
 </div>
 
 <script>
+// 서버에 API 키가 있으면 입력란 숨기기
+fetch('/check-api-key').then(r => r.json()).then(data => {
+  if (data.has_key) {
+    document.getElementById('api-card').style.display = 'none';
+    document.querySelectorAll('.step').forEach((s, i) => s.textContent = i + 1);
+  }
+}).catch(() => {});
+
 let currentTab = 'youtube';
 let videoFile = null;
 let scriptContent = '';

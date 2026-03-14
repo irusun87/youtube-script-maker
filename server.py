@@ -23,6 +23,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         pass
 
     def do_GET(self):
+        if self.path == "/check-api-key":
+            has_key = bool(API_KEY)
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            import json as _json
+            self.wfile.write(_json.dumps({"has_key": has_key}).encode())
+            return
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.end_headers()
