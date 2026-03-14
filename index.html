@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>영상 대본 생성기 v2</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f0f0f; --bg2: #1a1a1a; --bg3: #242424;
+    --border: rgba(255,255,255,0.08); --border2: rgba(255,255,255,0.14);
+    --text: #f0f0f0; --text2: #9a9a9a; --text3: #555;
+    --red: #e63946; --red2: #ff6b6b;
+    --blue: #4a9eff; --blue2: #7bb8ff;
+    --radius: 10px; --radius-lg: 16px;
+  }
+  body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  header {
+    border-bottom: 1px solid var(--border); padding: 16px 32px;
+    display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 10; background: var(--bg);
+  }
+  .logo { width: 30px; height: 30px; background: var(--red); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+  .logo svg { width: 16px; height: 16px; }
+  header h1 { font-size: 15px; font-weight: 700; }
+  .version { font-size: 11px; background: rgba(74,158,255,0.15); color: var(--blue2); border: 1px solid rgba(74,158,255,0.3); padding: 2px 8px; border-radius: 999px; font-weight: 600; }
+
+  .main { max-width: 860px; margin: 0 auto; padding: 28px 20px; display: grid; gap: 20px; }
+
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 22px; }
+  .card-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text2); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .step { width: 20px; height: 20px; background: var(--red); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #fff; font-weight: 700; flex-shrink: 0; }
+
+  /* API Key */
+  .input-row { display: flex; gap: 10px; }
+  input[type=text], input[type=password], input[type=url] {
+    flex: 1; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius);
+    padding: 10px 14px; font-size: 14px; color: var(--text); font-family: 'Noto Sans KR', sans-serif;
+    outline: none; transition: border-color 0.15s;
+  }
+  input:focus { border-color: var(--red); }
+  input::placeholder { color: var(--text3); }
+  .hint { font-size: 12px; color: var(--text3); margin-top: 8px; }
+  .hint a { color: var(--blue2); text-decoration: none; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 6px; margin-bottom: 18px; }
+  .tab {
+    flex: 1; padding: 10px; border-radius: var(--radius); border: 1px solid var(--border2);
+    background: var(--bg3); color: var(--text2); font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s; font-family: 'Noto Sans KR', sans-serif;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .tab:hover { border-color: var(--border2); background: #2a2a2a; color: var(--text); }
+  .tab.active { background: var(--red); border-color: var(--red); color: #fff; }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* YouTube */
+  .url-row { display: flex; gap: 10px; }
+  .btn-go {
+    padding: 10px 20px; background: var(--red); border: none; border-radius: var(--radius);
+    color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap;
+    font-family: 'Noto Sans KR', sans-serif; transition: all 0.12s;
+  }
+  .btn-go:hover { opacity: 0.85; }
+  .btn-go:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Upload */
+  .upload-zone {
+    border: 2px dashed var(--border2); border-radius: var(--radius-lg); padding: 36px 24px;
+    text-align: center; cursor: pointer; transition: all 0.15s;
+  }
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--blue); background: rgba(74,158,255,0.04); }
+  .upload-zone .icon { width: 44px; height: 44px; margin: 0 auto 12px; background: var(--bg3); border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+  .upload-zone h3 { font-size: 14px; font-weight: 600; margin-bottom: 5px; }
+  .upload-zone p { font-size: 12px; color: var(--text2); }
+  video { width: 100%; border-radius: var(--radius); margin-top: 14px; max-height: 220px; object-fit: contain; background: #000; display: none; }
+  video.show { display: block; }
+
+  .btn-analyze {
+    width: 100%; margin-top: 14px; padding: 12px; background: var(--blue); border: none;
+    border-radius: var(--radius); color: #fff; font-size: 15px; font-weight: 700;
+    cursor: pointer; font-family: 'Noto Sans KR', sans-serif; transition: all 0.12s;
+  }
+  .btn-analyze:hover { opacity: 0.85; }
+  .btn-analyze:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Progress */
+  .progress-wrap { margin-bottom: 14px; }
+  .progress-bar { height: 3px; background: var(--bg3); border-radius: 2px; overflow: hidden; margin-bottom: 8px; }
+  .progress-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+  .fill-red { background: linear-gradient(90deg, var(--red), var(--red2)); }
+  .fill-blue { background: linear-gradient(90deg, var(--blue), var(--blue2)); }
+  .progress-status { font-size: 13px; color: var(--text2); }
+
+  /* Script */
+  .script-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .badge { font-size: 11px; padding: 3px 10px; border-radius: 999px; font-weight: 600; }
+  .badge-red { background: rgba(230,57,70,0.15); color: var(--red2); border: 1px solid rgba(230,57,70,0.3); }
+  .badge-blue { background: rgba(74,158,255,0.15); color: var(--blue2); border: 1px solid rgba(74,158,255,0.3); }
+
+  .btn-copy {
+    display: none; padding: 7px 14px; background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: var(--radius); color: var(--text); font-size: 13px; font-weight: 600;
+    cursor: pointer; font-family: 'Noto Sans KR', sans-serif; transition: all 0.12s;
+  }
+  .btn-copy.show { display: inline-flex; align-items: center; gap: 6px; }
+  .btn-copy:hover { background: #2a2a2a; }
+
+  .script-area {
+    background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 18px; min-height: 200px; font-size: 14px; line-height: 1.85;
+    white-space: pre-wrap; color: var(--text); font-family: 'Noto Sans KR', sans-serif;
+  }
+
+  .transcript-toggle {
+    margin-top: 12px; font-size: 12px; color: var(--text3); cursor: pointer;
+    display: flex; align-items: center; gap: 6px; width: fit-content;
+  }
+  .transcript-toggle:hover { color: var(--text2); }
+  .transcript-box {
+    display: none; margin-top: 8px; background: var(--bg3); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px; font-size: 12px; line-height: 1.7;
+    color: var(--text2); max-height: 150px; overflow-y: auto;
+  }
+  .transcript-box.show { display: block; }
+
+  .hidden { display: none !important; }
+  .status-text { font-size: 13px; color: var(--text2); margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="2" width="14" height="10" rx="2" stroke="white" stroke-width="1.3"/><polygon points="6,5 11,8 6,11" fill="white"/></svg>
+  </div>
+  <h1>영상 대본 생성기</h1>
+  <span class="version">v2</span>
+</header>
+
+<div class="main">
+
+  <!-- API Key -->
+  <div class="card">
+    <div class="card-title"><span class="step">1</span> Anthropic API 키</div>
+    <div class="input-row">
+      <input type="password" id="api-key" placeholder="sk-ant-api03-..." autocomplete="off">
+    </div>
+    <p class="hint"><a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>에서 발급 · 키는 로컬 서버에서만 처리되며 저장되지 않아요</p>
+  </div>
+
+  <!-- Mode Select -->
+  <div class="card">
+    <div class="card-title"><span class="step">2</span> 영상 입력 방식 선택</div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('youtube')">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="1" y="2" width="13" height="9" rx="2" stroke="currentColor" stroke-width="1.2"/><polygon points="5.5,5 10,7.5 5.5,10" fill="currentColor"/></svg>
+        유튜브 링크
+      </button>
+      <button class="tab" onclick="switchTab('whisper')">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M7.5 1v8M4 5.5C4 7.43 5.57 9 7.5 9S11 7.43 11 5.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M3 12h9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        영상 파일 업로드
+      </button>
+    </div>
+
+    <!-- YouTube Tab -->
+    <div class="tab-content active" id="tab-youtube">
+      <div class="url-row">
+        <input type="url" id="yt-url" placeholder="https://www.youtube.com/watch?v=...">
+        <button class="btn-go" id="yt-btn" onclick="startYoutube()">자막 추출 →</button>
+      </div>
+      <p class="hint" style="margin-top:8px;">자동 생성 자막 포함 · 한국어 우선 추출</p>
+    </div>
+
+    <!-- Whisper Tab -->
+    <div class="tab-content" id="tab-whisper">
+      <div class="upload-zone" id="upload-zone"
+        onclick="document.getElementById('file-input').click()"
+        ondragover="onDragOver(event)" ondrop="onDrop(event)" ondragleave="onDragLeave()">
+        <div class="icon">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.3">
+            <path d="M11 2v12M7 6l4-4 4 4"/><path d="M3 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"/>
+          </svg>
+        </div>
+        <h3>영상 파일을 여기에 드래그하거나 클릭</h3>
+        <p>MP4, MOV, AVI, WebM · Whisper AI로 음성 인식</p>
+      </div>
+      <input type="file" id="file-input" accept="video/*" style="display:none" onchange="onFileSelect(event)">
+      <video id="preview" controls></video>
+      <button class="btn-analyze hidden" id="whisper-btn" onclick="startWhisper()">음성 인식 후 대본 생성</button>
+      <p class="status-text hidden" id="whisper-status"></p>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div class="card hidden" id="result-card">
+    <div class="card-title"><span class="step">3</span> 생성된 스크립트</div>
+    <div class="progress-wrap" id="progress-wrap">
+      <div class="progress-bar"><div class="progress-fill fill-red" id="progress-fill" style="width:0%"></div></div>
+      <div class="progress-status" id="progress-status">준비 중...</div>
+    </div>
+    <div class="script-header">
+      <span class="badge badge-red" id="result-badge">YouTube Script</span>
+      <button class="btn-copy" id="copy-btn" onclick="copyScript()">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="4" y="4" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M1 9V2a1 1 0 011-1h7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        복사
+      </button>
+    </div>
+    <div class="script-area" id="script-output">스크립트가 여기에 표시됩니다...</div>
+    <div class="transcript-toggle" id="transcript-toggle" onclick="toggleTranscript()" style="display:none">
+      ▶ 원본 텍스트 보기
+    </div>
+    <div class="transcript-box" id="transcript-box"></div>
+  </div>
+
+</div>
+
+<script>
+let currentTab = 'youtube';
+let videoFile = null;
+let scriptContent = '';
+let transcriptContent = '';
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', (i === 0 && tab === 'youtube') || (i === 1 && tab === 'whisper'));
+  });
+  document.getElementById('tab-youtube').classList.toggle('active', tab === 'youtube');
+  document.getElementById('tab-whisper').classList.toggle('active', tab === 'whisper');
+
+  const fill = document.getElementById('progress-fill');
+  fill.className = 'progress-fill ' + (tab === 'youtube' ? 'fill-red' : 'fill-blue');
+  document.getElementById('result-badge').textContent = tab === 'youtube' ? 'YouTube Script' : 'Whisper Script';
+  document.getElementById('result-badge').className = 'badge ' + (tab === 'youtube' ? 'badge-red' : 'badge-blue');
+}
+
+// YouTube
+async function startYoutube() {
+  const apiKey = document.getElementById('api-key').value.trim();
+  const url = document.getElementById('yt-url').value.trim();
+  if (!apiKey) { alert('API 키를 입력해주세요!'); return; }
+  if (!url) { alert('유튜브 URL을 입력해주세요!'); return; }
+
+  document.getElementById('yt-btn').disabled = true;
+  showResult();
+  setProgress(10, '유튜브 자막 추출 중...');
+
+  try {
+    const res = await fetch('/youtube', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ api_key: apiKey, url })
+    });
+    setProgress(70, 'Claude로 대본 작성 중...');
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    setProgress(100, '완료!');
+    showScript(data.script, data.transcript);
+  } catch (e) {
+    setProgress(0, '오류 발생');
+    document.getElementById('script-output').textContent = '오류: ' + e.message;
+  }
+  document.getElementById('yt-btn').disabled = false;
+}
+
+// Whisper
+function onDragOver(e) { e.preventDefault(); document.getElementById('upload-zone').classList.add('drag'); }
+function onDragLeave() { document.getElementById('upload-zone').classList.remove('drag'); }
+function onDrop(e) { e.preventDefault(); onDragLeave(); const f = e.dataTransfer.files[0]; if (f && f.type.startsWith('video/')) loadVideo(f); }
+function onFileSelect(e) { const f = e.target.files[0]; if (f) loadVideo(f); }
+
+function loadVideo(file) {
+  videoFile = file;
+  const url = URL.createObjectURL(file);
+  const vid = document.getElementById('preview');
+  vid.src = url;
+  vid.classList.add('show');
+  document.getElementById('whisper-btn').classList.remove('hidden');
+  document.getElementById('whisper-status').classList.remove('hidden');
+  document.getElementById('whisper-status').textContent = `파일 선택됨: ${file.name} (${(file.size/1024/1024).toFixed(1)}MB)`;
+}
+
+async function startWhisper() {
+  const apiKey = document.getElementById('api-key').value.trim();
+  if (!apiKey) { alert('API 키를 입력해주세요!'); return; }
+  if (!videoFile) { alert('영상 파일을 선택해주세요!'); return; }
+
+  document.getElementById('whisper-btn').disabled = true;
+  showResult();
+  setProgress(5, '영상 파일 읽는 중...');
+
+  // 파일을 base64로 변환
+  const base64 = await new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(videoFile);
+  });
+
+  setProgress(15, 'Whisper 음성 인식 중... (시간이 걸릴 수 있어요)');
+
+  try {
+    const res = await fetch('/whisper', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ api_key: apiKey, video_data: base64, filename: videoFile.name })
+    });
+    setProgress(80, 'Claude로 대본 작성 중...');
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    setProgress(100, '완료!');
+    showScript(data.script, data.transcript);
+  } catch (e) {
+    setProgress(0, '오류 발생');
+    document.getElementById('script-output').textContent = '오류: ' + e.message;
+  }
+  document.getElementById('whisper-btn').disabled = false;
+}
+
+function showResult() {
+  document.getElementById('result-card').classList.remove('hidden');
+  document.getElementById('progress-wrap').style.display = 'block';
+  document.getElementById('copy-btn').classList.remove('show');
+  document.getElementById('script-output').textContent = '';
+  document.getElementById('transcript-toggle').style.display = 'none';
+  scriptContent = '';
+}
+
+function setProgress(pct, msg) {
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-status').textContent = msg;
+}
+
+function showScript(script, transcript) {
+  scriptContent = script;
+  transcriptContent = transcript || '';
+  document.getElementById('script-output').textContent = script;
+  document.getElementById('copy-btn').classList.add('show');
+  if (transcript) {
+    document.getElementById('transcript-toggle').style.display = 'flex';
+    document.getElementById('transcript-box').textContent = transcript;
+  }
+  setTimeout(() => { document.getElementById('progress-wrap').style.display = 'none'; }, 1200);
+}
+
+function toggleTranscript() {
+  const box = document.getElementById('transcript-box');
+  const toggle = document.getElementById('transcript-toggle');
+  box.classList.toggle('show');
+  toggle.textContent = box.classList.contains('show') ? '▼ 원본 텍스트 닫기' : '▶ 원본 텍스트 보기';
+}
+
+function copyScript() {
+  if (!scriptContent) return;
+  navigator.clipboard.writeText(scriptContent).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = '복사됨!';
+    setTimeout(() => { btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="4" y="4" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M1 9V2a1 1 0 011-1h7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg> 복사`; }, 2000);
+  });
+}
+</script>
+</body>
+</html>
