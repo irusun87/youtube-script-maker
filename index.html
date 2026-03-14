@@ -252,7 +252,6 @@ function switchTab(tab) {
 async function startYoutube() {
   const apiKey = document.getElementById('api-key').value.trim();
   const url = document.getElementById('yt-url').value.trim();
-  if (!apiKey) { alert('API 키를 입력해주세요!'); return; }
   if (!url) { alert('유튜브 URL을 입력해주세요!'); return; }
 
   document.getElementById('yt-btn').disabled = true;
@@ -296,7 +295,6 @@ function loadVideo(file) {
 
 async function startWhisper() {
   const apiKey = document.getElementById('api-key').value.trim();
-  if (!apiKey) { alert('API 키를 입력해주세요!'); return; }
   if (!videoFile) { alert('영상 파일을 선택해주세요!'); return; }
 
   document.getElementById('whisper-btn').disabled = true;
