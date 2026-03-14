@@ -13,7 +13,7 @@ import urllib.error
 import subprocess
 import tempfile
 
-PORT = 8765
+PORT = int(os.environ.get("PORT", 8765))
 API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 HTML = open(os.path.join(os.path.dirname(__file__), "index.html"), encoding="utf-8").read()
 
