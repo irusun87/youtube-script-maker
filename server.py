@@ -69,7 +69,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
 def handle_youtube(payload):
     url = payload.get("url", "").strip()
-    api_key = payload.get("api_key") or API_KEY
+    api_key = payload.get("api_key") or os.environ.get("ANTHROPIC_API_KEY", "")
     if not url:
         raise Exception("유튜브 URL을 입력해주세요.")
     if not api_key:
@@ -84,7 +84,7 @@ def handle_youtube(payload):
 
 
 def handle_whisper(payload):
-    api_key = payload.get("api_key") or API_KEY
+    api_key = payload.get("api_key") or os.environ.get("ANTHROPIC_API_KEY", "")
     video_data = payload.get("video_data")
     filename = payload.get("filename", "video.mp4")
     if not api_key:
